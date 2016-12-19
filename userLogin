@@ -1,0 +1,104 @@
+// ====================================================================================================
+//
+// Cloud Code for userLogin, write your code here to customise the GameSparks platform.
+//
+// For details of the GameSparks Cloud Code API see https://portal.gamesparks.net/docs.htm			
+//
+// ====================================================================================================
+
+
+var gamesData = Spark.getData().params;
+
+
+if (gamesData){
+    
+    
+    var jsonObject = JSON.parse(gamesData);
+
+    //Children[x] are your rows. I am using row one in this case.
+    var userNameValue = jsonObject.Children[1].Properties[0].Value;
+    
+    //All the values in a row are together seperated by pipe (|). I seperate them here.
+    var dataArray = userNameValue.split("|");
+    
+    //These are your columns of the row 1.
+    var uId = dataArray[1];
+    var uName = dataArray[2];
+    var uPwd = dataArray[3];
+    var result = dataArray[4]; //In the future this will handle possible errors: Locked, Username not unique.
+    var requestId = dataArray[5];
+    
+    var registrationResponse;
+    
+    //Is the user not registered.
+    if (!uId) {
+    //Register the user.
+        registrationResponse = Spark.sendRequest(
+        {
+         "@class": ".RegistrationRequest",
+         "displayName": uName,
+         "password": uPwd,
+         "segments": {},
+         "userName": uName
+        }
+        )
+    } else {
+    //Else log in user.
+        registrationResponse = Spark.sendRequest(
+        {
+         "@class": ".AuthenticationRequest",
+         "password": uPwd,
+         "userName": uName
+        }
+       )
+    }
+    
+    //Repopulate the object. Add the user Id and result.
+    jsonObject.Children[1].Properties[0].Value = "|" + registrationResponse.userId + 
+    "|" + uName + "|" + uPwd + "| |"+ requestId + 
+    "|";
+    
+    jsonObject.Name = requestId;
+    
+    //Pull the collection.
+    var collection = Spark.runtimeCollection("player_user_table");
+    
+    //Save the record for the response.
+    collection.insert(jsonObject);
+    
+    //Send the status back.
+    Spark.setScriptData("RESPONSE_RAW", '{"Status":"Success"}');
+} else {
+    var requestId = Spark.getData().requestId;
+    
+    //Check we got a userId
+    if (requestId) {
+        
+        //Pull collection
+        var collection = Spark.runtimeCollection("player_user_table");
+        
+        //Make sure we got a collection
+        if (collection) {
+            
+            //Find one with the correctId
+            var foundRequest = collection.findOne({"Name":requestId});
+            
+            //Check to make sure we found request.
+            if (foundRequest) {
+                //Send response.
+                Spark.setScriptData("RESPONSE_RAW", foundRequest);
+                
+                //Remove request.
+                collection.remove({"Name":requestId})
+            } else {
+                Spark.setScriptData("RESPONSE_RAW", ""); 
+            }
+            
+        } else {
+           Spark.setScriptData("RESPONSE_RAW", ""); 
+        }
+        
+    } else {
+        Spark.setScriptData("RESPONSE_RAW", "");
+    }
+}
