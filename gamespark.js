@@ -1,5 +1,13 @@
+// Version 1.1
+// Change these parameters for your game
+var leaderboardName = "";
+var leaderboardEvent = "";
+var previewMode = false;
+// Amplitude.
+var amplitudeKey = "";
+
 // Base url:
-// https://preview.gamesparks.net/callback/<<API KEY>>/<<Credentials Type>>/<<Secret>>
+// https://preview.gamesparks.net/callback/Y385984u7pN6/gamesalad/Fcjm94YYqXdVT1DVnSND0Sdrmq3ysj3B
 // 
 // Register example:
 // ?requestType=register&userName=adrian44&userPassword=password&displayName=twoluckyplay33er
@@ -16,21 +24,46 @@
 // Get Leaderboard:
 // ?requestType=getLeaderboard
 // Returns: Leaderboard Table
-//
+// 
+// Send Event:
+// ?requestType=saveEvent&userName=adrian44&userPassword=password&eventName=app_launch&app_version=100&os_name=ios&os_version=8&country=us&language=us&device_model=test
+// 
 // Create GameData: "responseTemplates" and insert "templateleaderboard.json" as "templateleaderboard"
-
-
-// Change these parameters for your game
-var leaderboardName = ""
-var leaderboardEvent = ""
-var previewMode = false
-//
+var app_version = Spark.getData().app_version;
+var os_name = Spark.getData().os_name;
+var os_version = Spark.getData().os_version;
+var device_model = Spark.getData().device_model;
+var country = Spark.getData().country;
+var language = Spark.getData().language;
+var baseURL = "https://api.amplitude.com/httpapi";
 
 var gdsAPI = Spark.getGameDataService();
 var tableData = Spark.getData().params;
 var templateName = Spark.getData().templateName;
 var gamesData = Spark.getData();
 var isError = true;
+
+function sendEvent(dataObject) {
+    
+    var requestObject = {};
+    requestObject.api_key = amplitudeKey;
+    requestObject.event = [];
+    requestObject.event[0] = dataObject;
+    
+    var jsonRequestObject = JSON.stringify(requestObject);
+    
+    var postRequest = Spark.getHttp(baseURL).setHeaders(
+        {
+            "Content-Type": "application/json"
+        }
+    ).postForm(requestObject);
+    
+    Spark.getLog().error(postRequest.getResponseJson());
+    Spark.setScriptData("RESPONSE_RAW", '{“Status”:”Success”}');
+    isError = false;
+    
+    
+}
 
 function playerLogin(userName, password) {
     if (userName && password) {
@@ -204,9 +237,62 @@ if (gamesData){
             record.persistor().persist();
         }
         
-         Spark.setScriptData("RESPONSE_RAW", 1);
+         Spark.setScriptData("RESPONSE_RAW", '{“Status”:”Success”}');
          isError = false;
          
+    } else if (requestType == "saveEvent") {
+        
+        //Required.
+        var uName = Spark.getData().userName;
+        var uPwd = Spark.getData().userPassword;
+        var eventName = Spark.getData().eventName;
+        
+        //Optional
+        var app_version = Spark.getData().app_version;
+        var os_name = Spark.getData().os_name;
+        var os_version = Spark.getData().os_version;
+        var device_model = Spark.getData().device_model;
+        var country = Spark.getData().country;
+        var language = Spark.getData().language;
+        
+        if (uName && uPwd && eventName) {
+            var uId = playerLogin(uName, uPwd);
+            
+            if (uId) { 
+                var dataObject = {};
+                dataObject.user_id = uId; 
+                dataObject.event_type = eventName;
+                
+                if (app_version) {
+                    dataObject.app_version = app_version;
+                }
+                
+                if (os_name) {
+                    dataObject.os_name = os_name;
+                }
+                
+                if (os_version) {
+                    dataObject.os_version = os_version;
+                }
+                
+                if (device_model) {
+                    dataObject.device_model = device_model;
+                }
+                
+                if (country) {
+                    dataObject.country = country;
+                }
+                
+                if (language) {
+                    dataObject.language = language;
+                }
+                
+                 sendEvent(dataObject);
+            }
+        } else {
+            Spark.getLog().error("For putEvent request userName, userPassword and eventName are required.")
+        }
+    
     } else if (requestType == "getProfile" ) {
         
         var uName = Spark.getData().userName;
@@ -215,7 +301,7 @@ if (gamesData){
         if (uName && uPwd) {
             var uId = playerLogin(uName, uPwd);
 
-            if (uid) {
+            if (uId) {
                 var jsonObject = getProfile(uid);
 
                 if (jsonObject) {
@@ -237,7 +323,7 @@ if (gamesData){
 
             if (uId == true) {
                 putProfile( uid, profile);
-                Spark.setScriptData("RESPONSE_RAW", 1);
+                Spark.setScriptData("RESPONSE_RAW", '{“Status”:”Success”}');
                 isError = false;
             } 
         }
@@ -269,7 +355,7 @@ if (gamesData){
         var loginResponse = playerLogin(uName, uPwd);
 
         if (loginResponse) {
-            Spark.setScriptData("RESPONSE_RAW", 1);
+            Spark.setScriptData("RESPONSE_RAW", '{“Status”:”Success”}');
             isError = false;
         }
 
@@ -291,7 +377,7 @@ if (gamesData){
             )
 
             if(registrationResponse.userId) {
-                Spark.setScriptData("RESPONSE_RAW", 1);
+                Spark.setScriptData("RESPONSE_RAW", '{“Status”:”Success”}');
                 isError = false;
 
             } else {
@@ -305,5 +391,5 @@ if (gamesData){
 }
 
 if (isError == true) {
-            Spark.setScriptData("RESPONSE_RAW", -1); 
+            Spark.setScriptData("RESPONSE_RAW", ""); 
 }
