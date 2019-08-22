@@ -7,7 +7,7 @@ var previewMode = false;
 var amplitudeKey = "";
 
 // Base url:
-// https://preview.gamesparks.net/callback/Y385984u7pN6/gamesalad/Fcjm94YYqXdVT1DVnSND0Sdrmq3ysj3B
+// https://preview.gamesparks.net/callback/<apiKey>/<callbacktype>/<callbacksecret>
 // 
 // Register example:
 // ?requestType=register&userName=adrian44&userPassword=password&displayName=twoluckyplay33er
